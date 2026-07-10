@@ -3,7 +3,7 @@ from collections import Counter
 
 
 def process_log_file(file_path):
-    print("Reading...")
+    print("Reading... \n")
 
     total_lines = 0
     corrupted_lines = 0
@@ -63,22 +63,30 @@ def process_log_file(file_path):
             # if total_lines <= 5 :
             #     print(f"Line {total_lines} : {line}")
 
-        print(f"Total Lines : {total_lines}")
+        print("=" * 40)
+        print(f"\n Total Lines : {total_lines}")
         print(f"Total Corrupted Lines : {corrupted_lines}")
         print(f"Unique IPs found : {len(ip_counter)}")
 
         total_valid_requests = sum(status_counter.values())
         error_requests = sum(count for status, count in status_counter.items() if status.startswith(("4" , "5")))
         error_rate = (error_requests / total_valid_requests * 100) if total_valid_requests > 0 else 0
-        print(f"Overall Error Rate : {error_rate:.2f}% (4xx/5xx responses)")
+        print(f"Overall Error Rate : {error_rate:.2f}% (4xx/5xx responses) \n")
+        print("=" * 40)
 
         print("\n----Top 10 Most Visited Endpoint----")
         for rank, (endpoint, count) in enumerate(endpoint_counter.most_common(10), 1) :
             print(f"{rank}. {endpoint} -> {count} request")
 
+        print("\n")
+        print("=" * 40)
+
         print("\n----Status code Distribution----")
         for status, count in  sorted(status_counter.items()) :
             print(f"Status {status} -> {count} times")
+
+        print("\n")
+        print("=" * 40)
 
         print("\n---- Hourly Traffic Distribution & Histogram ----")
         print("Hour | Request Count | Visual Chart")
@@ -92,3 +100,7 @@ def process_log_file(file_path):
             bar_length = int((count / max_hour_traffic) * 30) if max_hour_traffic > 0 else 0
             bar = "#" * bar_length
             print(f"{hour_str}:00 | {count:13d} | {bar}")
+
+        print("\n")
+        print("=" * 40)
+        print("\n")
