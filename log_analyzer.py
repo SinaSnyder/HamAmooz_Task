@@ -1,12 +1,17 @@
 import os
 import argparse
 import re
+from collections import Counter
 
 def process_log_file(file_path):
     print("Reading...")
 
     total_lines = 0
     corrupted_lines = 0
+
+    ip_counter = Counter()
+    endpoint_counter = Counter()
+    status_counter = Counter()
 
     log_pattern = re.compile(
         r'^(?P<ip>[\d\.]+)\s+'                
@@ -21,6 +26,7 @@ def process_log_file(file_path):
     )
 
     with open(file_path , mode="r" , encoding="utf-8" , errors="ignore") as file:
+        
         for line in file :
 
             line = line.strip()
@@ -32,17 +38,18 @@ def process_log_file(file_path):
             
             if match : 
                 data = match.groupdict()
-
+                ip_counter[data["ip"]] += 1
+                endpoint_counter[data["endpoint"]] += 1
+                status_counter[data["status"]] += 1
                 #TEST
-                if total_lines <= 5 :
-                    print(f"--- Line {total_lines} Parsed ---")
-                    print(f"IP: {data['ip']}")
-                    print(f"Time: {data['time']}")
-                    print(f"Method: {data['method']}")
-                    print(f"Endpoint: {data['endpoint']}")
-                    print(f"Status: {data['status']}")
-                    print(f"Size: {data['size']}")
-
+                # if total_lines <= 5 :
+                #     print(f"--- Line {total_lines} Parsed ---")
+                #     print(f"IP: {data['ip']}")
+                #     print(f"Time: {data['time']}")
+                #     print(f"Method: {data['method']}")
+                #     print(f"Endpoint: {data['endpoint']}")
+                #     print(f"Status: {data['status']}")
+                #     print(f"Size: {data['size']}")
             else :
                 corrupted_lines += 1
 
@@ -52,6 +59,16 @@ def process_log_file(file_path):
 
         print(f"Total Lines : {total_lines}")
         print(f"Total Corrupted Lines : {corrupted_lines}")
+
+        print(f"Unique IPs found : {len(ip_counter)}")
+
+        print("\n----Top 10 Most Visited Endpoint----")
+        for rank, (endpoint, count) in enumerate(endpoint_counter.most_common(10), 1) :
+            print(f"{rank}. {endpoint} -> {count} request")
+
+        print("\n----Status code Distribution----")
+        for status, count in  sorted(status_counter.items()) :
+            print(f"Status {status} -> {count} times")
 
 
 def main(): 
