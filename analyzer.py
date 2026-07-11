@@ -77,6 +77,7 @@ def process_log_file(file_path , start_hour = None, end_hour = None, output_file
                 #     print(f"Endpoint: {data['endpoint']}")
                 #     print(f"Status: {data['status']}")
                 #     print(f"Size: {data['size']}")
+
             else :
                 corrupted_lines += 1
 
@@ -85,11 +86,11 @@ def process_log_file(file_path , start_hour = None, end_hour = None, output_file
             #     print(f"Line {total_lines} : {line}")
 
         # Stop execution timer
-        execution_time = time.time() - start_time
+    execution_time = time.time() - start_time
 
-        # Calculate overall error rate based on 4xx and 5xx statuses
-        total_valid_requests = sum(status_counter.values())
-        error_requests = sum(count for status, count in status_counter.items() if status.startswith(("4" , "5")))
-        error_rate = (error_requests / total_valid_requests * 100) if total_valid_requests > 0 else 0
+    # Calculate overall error rate based on 4xx and 5xx statuses
+    total_valid_requests = sum(status_counter.values())
+    error_requests = sum(count for status, count in status_counter.items() if status.startswith(("4" , "5")))
+    error_rate = (error_requests / total_valid_requests * 100) if total_valid_requests > 0 else 0
     
-        generate_report(total_lines, corrupted_lines, ip_counter, endpoint_counter, status_counter, hour_counter, error_rate, execution_time, start_hour, end_hour, output_file)
+    generate_report(total_lines, corrupted_lines, ip_counter, endpoint_counter, status_counter, hour_counter, error_rate, execution_time, start_hour, end_hour)

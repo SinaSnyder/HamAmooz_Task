@@ -1,4 +1,4 @@
-def generate_report(total_lines, corrupted_lines, ip_counter, endpoint_counter, status_counter, hour_counter, error_rate, execution_time, start_hour, end_hour, output_file):
+def generate_report(total_lines, corrupted_lines, ip_counter, endpoint_counter, status_counter, hour_counter, error_rate, execution_time, start_hour, end_hour):
 
     top_ip, top_ip_count = ip_counter.most_common(1)[0] if ip_counter else ("None", 0)
 
@@ -45,4 +45,4 @@ def generate_report(total_lines, corrupted_lines, ip_counter, endpoint_counter, 
 
     print("")
     print("=" * 55)
-    print("\n")
+    print("")
