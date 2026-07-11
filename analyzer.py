@@ -1,8 +1,11 @@
 import re
+import gzip
+import time
 from collections import Counter
 
 
-def process_log_file(file_path):
+def process_log_file(file_path , start_hour = None, end_hour = None):
+    start_time = time.time()
     print("Reading... \n")
 
     total_lines = 0
@@ -25,7 +28,10 @@ def process_log_file(file_path):
         r'(?P<size>\d+|\-)'                    
     )
 
-    with open(file_path , mode="r" , encoding="utf-8" , errors="ignore") as file:
+    open_func = gzip.open if file_path.endswith(".gz") else open
+    mode = "rt" if file_path.endswith(".gz") else "r"
+
+    with open_func(file_path , mode="r" , encoding="utf-8" , errors="ignore") as file:
         
         for line in file :
 
@@ -38,14 +44,21 @@ def process_log_file(file_path):
             
             if match : 
                 data = match.groupdict()
+
+                time_str = data["time"]
+                hour = "00"
+                if ":" in time_str:
+                    hour = time_str.split(":")[1]
+
+                if start_hour is not None and hour < start_hour :
+                    continue
+                if end_hour is not None and hour > end_hour :
+                    continue    
+
                 ip_counter[data["ip"]] += 1
                 endpoint_counter[data["endpoint"]] += 1
                 status_counter[data["status"]] += 1
-
-                time_str = data["time"]
-                if ":" in time_str:
-                    hour = time_str.split(":")[1]
-                    hour_counter[hour] += 1
+                hour_counter[hour] += 1
 
                 #TEST
                 # if total_lines <= 5 :
@@ -58,6 +71,8 @@ def process_log_file(file_path):
                 #     print(f"Size: {data['size']}")
             else :
                 corrupted_lines += 1
+
+            execution_time = time.time() - start_time
 
             #TEST
             # if total_lines <= 5 :
@@ -74,18 +89,25 @@ def process_log_file(file_path):
         print(f"Overall Error Rate : {error_rate:.2f}% (4xx/5xx responses) \n")
         print("=" * 40)
 
+        print(f"\nExecution time : {execution_time:.2f} seconds")
+        if start_hour or end_hour :
+            print(f"Active time filter : from {start_hour or "00"}:00 To {end_hour or "23"}:00")
+        print("")
+        print("=" * 40)
+
+
         print("\n----Top 10 Most Visited Endpoint----")
         for rank, (endpoint, count) in enumerate(endpoint_counter.most_common(10), 1) :
             print(f"{rank}. {endpoint} -> {count} request")
 
-        print("\n")
+        print("")
         print("=" * 40)
 
         print("\n----Status code Distribution----")
         for status, count in  sorted(status_counter.items()) :
             print(f"Status {status} -> {count} times")
 
-        print("\n")
+        print("")
         print("=" * 40)
 
         print("\n---- Hourly Traffic Distribution & Histogram ----")
@@ -101,6 +123,6 @@ def process_log_file(file_path):
             bar = "#" * bar_length
             print(f"{hour_str}:00 | {count:13d} | {bar}")
 
-        print("\n")
+        print("")
         print("=" * 40)
-        print("\n")
+        print("")
