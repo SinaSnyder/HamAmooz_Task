@@ -1,18 +1,24 @@
 import re
+import gzip
+import time
 from collections import Counter
+from report import generate_report
 
 
-def process_log_file(file_path):
+def process_log_file(file_path , start_hour = None, end_hour = None, output_file = None):
+    start_time = time.time()
     print("Reading... \n")
 
     total_lines = 0
     corrupted_lines = 0
 
+    # Using Counter (Hash Map) for O(1) lookups and counting
     ip_counter = Counter()
     endpoint_counter = Counter()
     status_counter = Counter()
     hour_counter = Counter()
 
+    # Optimized regex pattern
     log_pattern = re.compile(
         r'^(?P<ip>[\d\.]+)\s+'                
         r'(?:\S+)\s+'                          
@@ -25,7 +31,12 @@ def process_log_file(file_path):
         r'(?P<size>\d+|\-)'                    
     )
 
-    with open(file_path , mode="r" , encoding="utf-8" , errors="ignore") as file:
+    # Optional Feature: Stream compressed .gz files directly
+    open_func = gzip.open if file_path.endswith(".gz") else open
+    mode = "rt" if file_path.endswith(".gz") else "r"
+
+    # Efficient streaming: Line-by-line reading to keep memory footprint minimal
+    with open_func(file_path , mode=mode , encoding="utf-8" , errors="ignore") as file:
         
         for line in file :
 
@@ -38,14 +49,24 @@ def process_log_file(file_path):
             
             if match : 
                 data = match.groupdict()
+
+                # Extract hour from timestamp
+                time_str = data["time"]
+                hour = "00"
+                if ":" in time_str:
+                    hour = time_str.split(":")[1]
+
+                # Optional Feature: Filter out data outside the requested time window
+                if start_hour is not None and hour < start_hour:
+                    continue
+                if end_hour is not None and hour > end_hour:
+                    continue 
+
+                # Increment frequencies
                 ip_counter[data["ip"]] += 1
                 endpoint_counter[data["endpoint"]] += 1
                 status_counter[data["status"]] += 1
-
-                time_str = data["time"]
-                if ":" in time_str:
-                    hour = time_str.split(":")[1]
-                    hour_counter[hour] += 1
+                hour_counter[hour] += 1
 
                 #TEST
                 # if total_lines <= 5 :
@@ -56,6 +77,7 @@ def process_log_file(file_path):
                 #     print(f"Endpoint: {data['endpoint']}")
                 #     print(f"Status: {data['status']}")
                 #     print(f"Size: {data['size']}")
+
             else :
                 corrupted_lines += 1
 
@@ -63,44 +85,12 @@ def process_log_file(file_path):
             # if total_lines <= 5 :
             #     print(f"Line {total_lines} : {line}")
 
-        print("=" * 40)
-        print(f"\n Total Lines : {total_lines}")
-        print(f"Total Corrupted Lines : {corrupted_lines}")
-        print(f"Unique IPs found : {len(ip_counter)}")
+        # Stop execution timer
+    execution_time = time.time() - start_time
 
-        total_valid_requests = sum(status_counter.values())
-        error_requests = sum(count for status, count in status_counter.items() if status.startswith(("4" , "5")))
-        error_rate = (error_requests / total_valid_requests * 100) if total_valid_requests > 0 else 0
-        print(f"Overall Error Rate : {error_rate:.2f}% (4xx/5xx responses) \n")
-        print("=" * 40)
-
-        print("\n----Top 10 Most Visited Endpoint----")
-        for rank, (endpoint, count) in enumerate(endpoint_counter.most_common(10), 1) :
-            print(f"{rank}. {endpoint} -> {count} request")
-
-        print("\n")
-        print("=" * 40)
-
-        print("\n----Status code Distribution----")
-        for status, count in  sorted(status_counter.items()) :
-            print(f"Status {status} -> {count} times")
-
-        print("\n")
-        print("=" * 40)
-
-        print("\n---- Hourly Traffic Distribution & Histogram ----")
-        print("Hour | Request Count | Visual Chart")
-        print("-" * 55)
-
-        max_hour_traffic = max(hour_counter.values()) if hour_counter else 1
-
-        for h in range(24) :
-            hour_str = f"{h:02d}"
-            count = hour_counter.get(hour_str, 0)     
-            bar_length = int((count / max_hour_traffic) * 30) if max_hour_traffic > 0 else 0
-            bar = "#" * bar_length
-            print(f"{hour_str}:00 | {count:13d} | {bar}")
-
-        print("\n")
-        print("=" * 40)
-        print("\n")
+    # Calculate overall error rate based on 4xx and 5xx statuses
+    total_valid_requests = sum(status_counter.values())
+    error_requests = sum(count for status, count in status_counter.items() if status.startswith(("4" , "5")))
+    error_rate = (error_requests / total_valid_requests * 100) if total_valid_requests > 0 else 0
+    
+    generate_report(total_lines, corrupted_lines, ip_counter, endpoint_counter, status_counter, hour_counter, error_rate, execution_time, start_hour, end_hour)
